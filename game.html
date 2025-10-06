@@ -264,4 +264,216 @@
     /** Checks if a block can be moved to a specific position (dx, dy) */
     function isValidMove(shape, dx, dy) {
         for (let y = 0; y < shape.length; y++) {
-            for (let
+            for (let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x]) {
+                    const newX = dx + x;
+                    const newY = dy + y;
+
+                    // 1. Boundary check
+                    if (newX < 0 || newX >= COLS || newY >= ROWS) {
+                        return false;
+                    }
+
+                    // 2. Collision check with locked blocks
+                    // Only check if newY is within the board bounds (not negative)
+                    if (newY >= 0 && board[newY] && board[newY][newX]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Redraws the entire board state and the current falling block */
+    function refreshBoard() {
+        if (isGameOver) return;
+        
+        // 1. Draw locked blocks based on the `board` array
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const cell = document.getElementById(`cell-${x}-${y}`);
+                if (cell) {
+                    if (board[y][x] > 0) {
+                        // Color ID is 1-based, COLORS array is 0-based
+                        const colorIndex = board[y][x] - 1;
+                        cell.className = `cell block-${COLORS[colorIndex]}`;
+                    } else {
+                        // Empty cell
+                        cell.className = 'cell';
+                    }
+                }
+            }
+        }
+
+        // 2. Draw the currently falling block
+        drawBlock(currentBlock, currentBlockX, currentBlockY, currentBlockColor);
+    }
+
+    /** Helper to add/remove color classes for the current block's cells */
+    function drawBlock(shape, dx, dy, colorClass) {
+        for (let y = 0; y < shape.length; y++) {
+            for (let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x]) {
+                    const cell = document.getElementById(`cell-${dx + x}-${dy + y}`);
+                    if (cell) {
+                        // Apply the block's color class
+                        cell.className = `cell block-${colorClass}`;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // --- Game Loop Actions ---
+
+    /** Moves the block down one step automatically or manually */
+    function dropBlock() {
+        if (isGameOver) return;
+
+        if (moveBlock(0, 1)) {
+            // Success: Block moved down
+            refreshBoard();
+        } else {
+            // Failure: Block hit the bottom or another block
+            lockBlock();
+            checkAndClearLines();
+            spawnBlock();
+            refreshBoard();
+        }
+    }
+
+    /** Locks the current block onto the board array */
+    function lockBlock() {
+        const colorId = COLORS.indexOf(currentBlockColor) + 1; // 1-based ID
+
+        for (let y = 0; y < currentBlock.length; y++) {
+            for (let x = 0; x < currentBlock[y].length; x++) {
+                if (currentBlock[y][x]) {
+                    if (currentBlockY + y >= 0) {
+                        board[currentBlockY + y][currentBlockX + x] = colorId;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Checks for and clears full lines, then updates the score */
+    function checkAndClearLines() {
+        let linesCleared = 0;
+        
+        for (let y = ROWS - 1; y >= 0; y--) {
+            // Check if the row is full (contains no 0s)
+            if (board[y].every(cell => cell > 0)) {
+                // Remove the full row
+                board.splice(y, 1);
+                // Add a new empty row to the top
+                board.unshift(new Array(COLS).fill(0));
+                linesCleared++;
+                // Check the same row index again since all rows shifted down
+                y++;
+            }
+        }
+        
+        if (linesCleared > 0) {
+            updateScore(linesCleared);
+        }
+    }
+
+    /** Updates the score and adjusts game difficulty */
+    function updateScore(linesCleared) {
+        // Scoring: 100, 300, 500, 800 for 1, 2, 3, 4 lines respectively
+        const scoreMultipliers = [0, 100, 300, 500, 800];
+        const addedScore = scoreMultipliers[linesCleared] || 0;
+        score += addedScore;
+        scoreDisplay.textContent = score;
+
+        // Difficulty adjustment (speed up every 5000 points)
+        if (score > 0 && Math.floor(score / 5000) > Math.floor((score - addedScore) / 5000)) {
+            DROP_INTERVAL = Math.max(100, DROP_INTERVAL * 0.85); // Speed up (min 100ms)
+            clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(dropBlock, DROP_INTERVAL);
+        }
+    }
+
+    /** Attempts to move the block by (dx, dy) */
+    function moveBlock(dx, dy) {
+        if (isGameOver) return false;
+        
+        if (isValidMove(currentBlock, currentBlockX + dx, currentBlockY + dy)) {
+            // Update the block's position
+            currentBlockX += dx;
+            currentBlockY += dy;
+            return true;
+        }
+        return false;
+    }
+
+    /** Rotates the block 90 degrees clockwise if possible */
+    function rotateBlock() {
+        if (isGameOver) return;
+        
+        // Transpose and reverse rows for 90-degree rotation
+        const newShape = currentBlock[0].map((_, colIndex) =>
+            currentBlock.map(row => row[colIndex]).reverse()
+        );
+
+        if (isValidMove(newShape, currentBlockX, currentBlockY)) {
+            currentBlock = newShape;
+            refreshBoard();
+        }
+    }
+    
+    /** Handles the Game Over state */
+    function gameOver() {
+        isGameOver = true;
+        clearInterval(gameLoopInterval);
+        
+        finalScoreDisplay.textContent = `Final Score: ${score}`;
+        gameOverScreen.style.display = 'flex';
+    }
+
+
+    // --- Event Listeners (Key Controls and Restart) ---
+    document.addEventListener('keydown', (e) => {
+        if (isGameOver) return;
+
+        let moved = false;
+        switch (e.key) {
+            case 'ArrowLeft':
+                moved = moveBlock(-1, 0);
+                break;
+            case 'ArrowRight':
+                moved = moveBlock(1, 0);
+                break;
+            case 'ArrowDown':
+                // Manual drop is faster than auto drop
+                dropBlock();
+                e.preventDefault(); 
+                return;
+            case 'ArrowUp':
+            case ' ': // Spacebar
+                rotateBlock();
+                e.preventDefault(); 
+                return;
+            default:
+                return;
+        }
+
+        if (moved) {
+            refreshBoard();
+        }
+    });
+    
+    restartButton.addEventListener('click', () => {
+        initGame();
+    });
+
+    // Start the game!
+    initGame();
+
+</script>
+
+</body>
+</html>
