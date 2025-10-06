@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pastel Block Blast Game</title>
+    <title>Enhanced Pastel Block Blast Game</title>
     <style>
         /* Global Styles */
         body {
@@ -79,6 +79,9 @@
         .block-lavender { background-color: #e0b3ff; border: 2px outset #eeddff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
         .block-peach { background-color: #ffddb3; border: 2px outset #ffeecc; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
         .block-aqua { background-color: #b3fff5; border: 2px outset #ccfffa; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); }
+        .block-rose { background-color: #ffb3e6; border: 2px outset #ffccf0; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); } /* New color */
+        .block-lime { background-color: #e6ffb3; border: 2px outset #f0ffcc; box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); } /* New color */
+
 
         /* Clearfix for rows */
         .row::after {
@@ -101,7 +104,7 @@
             align-items: center;
             flex-direction: column;
             text-align: center;
-            font-size: 3em;
+            /* font-size: 3em; */ /* Removed for individual control */
             color: #d9534f; /* Danger color */
             font-weight: bold;
             border-radius: 5px;
@@ -109,30 +112,33 @@
             box-sizing: border-box;
         }
 
-        #game-over-screen p {
-            margin: 10px 0;
+        #game-over-screen .game-over-text {
+            font-size: 2.5em; /* Smaller game over text */
+            color: #e0b3ff; /* Pastel purple for GAME OVER text */
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 5px;
         }
 
         #final-score {
-            font-size: 1.5em;
-            color: #333;
+            font-size: 1.2em; /* Smaller final score text */
+            color: #888; /* Slightly darker pastel for score */
         }
 
         #restart-button {
             padding: 10px 20px;
             font-size: 1em;
             cursor: pointer;
-            background-color: #5bc0de;
-            color: white;
+            background-color: #b3ccff; /* Pastel blue button */
+            color: #333; /* Darker text for contrast */
             border: none;
             border-radius: 5px;
             margin-top: 20px;
-            box-shadow: 0 4px #46b8da;
+            box-shadow: 0 4px #87a9de; /* Darker pastel for shadow */
             transition: all 0.1s;
         }
 
         #restart-button:active {
-            box-shadow: 0 1px #46b8da;
+            box-shadow: 0 1px #87a9de;
             transform: translateY(3px);
         }
 
@@ -143,7 +149,7 @@
 <div id="main-wrapper">
     <div id="game-container">
         <div id="game-over-screen">
-            <p>GAME OVER</p>
+            <p class="game-over-text">GAME OVER</p>
             <div id="final-score"></div>
             <button id="restart-button">RESTART</button>
         </div>
@@ -156,8 +162,9 @@
         <div id="controls-info">
             <p>Controls:</p>
             <p>← → : Move</p>
-            <p>↓ : Drop (soft)</p>
+            <p>↓ : Soft Drop</p>
             <p>↑ or Space : Rotate</p>
+            <p>Enter : Hard Drop (New!)</p>
         </div>
     </div>
 </div>
@@ -169,19 +176,30 @@
     const BLOCK_SIZE = 30;
     let DROP_INTERVAL = 1000; // Block drop speed (milliseconds)
 
-    // Block color class names (matching CSS)
-    const COLORS = ['coral', 'sky', 'mint', 'lemon', 'lavender', 'peach', 'aqua'];
+    // Block color class names (matching CSS) - Added more colors
+    const COLORS = ['coral', 'sky', 'mint', 'lemon', 'lavender', 'peach', 'aqua', 'rose', 'lime'];
 
-    // Block shapes (Tetrominoes)
+    // Block shapes (Tetrominoes and a few new ones!)
+    // Each shape should be an array of rows, where 1 means a block part
     const SHAPES = [
-        [[1, 1, 1, 1]],                 // I
-        [[1, 1], [1, 1]],               // O
-        [[0, 1, 0], [1, 1, 1]],         // T
-        [[1, 1, 0], [0, 1, 1]],         // Z
-        [[0, 1, 1], [1, 1, 0]],         // S
-        [[1, 0, 0], [1, 1, 1]],         // J
-        [[0, 0, 1], [1, 1, 1]]          // L
+        // Standard Tetrominoes
+        [[1, 1, 1, 1]],                 // I-Block
+        [[1, 1], [1, 1]],               // O-Block
+        [[0, 1, 0], [1, 1, 1]],         // T-Block
+        [[1, 1, 0], [0, 1, 1]],         // Z-Block
+        [[0, 1, 1], [1, 1, 0]],         // S-Block
+        [[1, 0, 0], [1, 1, 1]],         // J-Block
+        [[0, 0, 1], [1, 1, 1]],         // L-Block
+
+        // New shapes (example: Pentominoes)
+        [[1, 1, 1], [0, 1, 0]],         // P-Block (3x2)
+        [[1, 1], [1, 0], [1, 0]],       // L-variant (3x2)
+        [[1, 1, 1], [1, 0, 0]],         // F-variant (3x2)
+        [[1, 0, 1], [1, 1, 1]],         // Cross-like (3x2)
+        [[1, 1, 1, 0], [0, 0, 1, 1]],   // Long Z variant (4x2)
+        [[0, 1, 0], [1, 1, 1], [0, 1, 0]] // Plus-shaped block (3x3)
     ];
+
 
     // --- Game Variables ---
     let board = [];             // Game grid state (0: empty, 1+: block color index)
@@ -211,7 +229,7 @@
         DROP_INTERVAL = 1000;
 
         // Reset DOM
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous board cells
         gameOverScreen.style.display = 'none';
         scoreDisplay.textContent = score;
 
@@ -251,7 +269,8 @@
     function spawnBlock() {
         const randomIndex = Math.floor(Math.random() * SHAPES.length);
         currentBlock = SHAPES[randomIndex];
-        currentBlockColor = COLORS[randomIndex];
+        // Ensure color array has enough elements or loop around
+        currentBlockColor = COLORS[randomIndex % COLORS.length]; 
         currentBlockX = Math.floor(COLS / 2) - Math.floor(currentBlock[0].length / 2);
         currentBlockY = 0;
 
@@ -351,7 +370,7 @@
         for (let y = 0; y < currentBlock.length; y++) {
             for (let x = 0; x < currentBlock[y].length; x++) {
                 if (currentBlock[y][x]) {
-                    if (currentBlockY + y >= 0) {
+                    if (currentBlockY + y >= 0) { // Ensure it's not trying to lock above the top
                         board[currentBlockY + y][currentBlockX + x] = colorId;
                     }
                 }
@@ -384,6 +403,7 @@
     /** Updates the score and adjusts game difficulty */
     function updateScore(linesCleared) {
         // Scoring: 100, 300, 500, 800 for 1, 2, 3, 4 lines respectively
+        // You can adjust these values, especially for blocks with more cells
         const scoreMultipliers = [0, 100, 300, 500, 800];
         const addedScore = scoreMultipliers[linesCleared] || 0;
         score += addedScore;
@@ -402,7 +422,6 @@
         if (isGameOver) return false;
         
         if (isValidMove(currentBlock, currentBlockX + dx, currentBlockY + dy)) {
-            // Update the block's position
             currentBlockX += dx;
             currentBlockY += dy;
             return true;
@@ -424,6 +443,23 @@
             refreshBoard();
         }
     }
+
+    /** Drops the block instantly to the bottom */
+    function hardDrop() {
+        if (isGameOver) return;
+
+        let dropDistance = 0;
+        while (isValidMove(currentBlock, currentBlockX, currentBlockY + 1)) {
+            currentBlockY++;
+            dropDistance++;
+        }
+        if (dropDistance > 0) {
+            // Give points for hard drop?
+            score += dropDistance * 2; // Example: 2 points per cell dropped
+            scoreDisplay.textContent = score;
+        }
+        dropBlock(); // Lock the block and spawn a new one
+    }
     
     /** Handles the Game Over state */
     function gameOver() {
@@ -437,7 +473,7 @@
 
     // --- Event Listeners (Key Controls and Restart) ---
     document.addEventListener('keydown', (e) => {
-        if (isGameOver) return;
+        if (isGameOver) return; // Prevent controls if game is over
 
         let moved = false;
         switch (e.key) {
@@ -447,15 +483,18 @@
             case 'ArrowRight':
                 moved = moveBlock(1, 0);
                 break;
-            case 'ArrowDown':
-                // Manual drop is faster than auto drop
+            case 'ArrowDown': // Soft drop
                 dropBlock();
                 e.preventDefault(); 
                 return;
             case 'ArrowUp':
-            case ' ': // Spacebar
+            case ' ': // Spacebar for rotation
                 rotateBlock();
                 e.preventDefault(); 
+                return;
+            case 'Enter': // Enter key for hard drop
+                hardDrop();
+                e.preventDefault();
                 return;
             default:
                 return;
