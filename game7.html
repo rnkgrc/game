@@ -13,8 +13,7 @@
             height: 100vh;
             background-color: #f7d7e3; /* Soft Pink/Purple Pop Background */
             margin: 0;
-            /* 全てのフォントをBangersに統一 */
-            font-family: 'Bangers', cursive; 
+            font-family: 'Nunito', sans-serif; /* Main UI Font (元のフォント) */
             flex-direction: column;
         }
 
@@ -71,7 +70,7 @@
             margin-bottom: 20px;
         }
         #controls-info {
-            font-size: 1em; /* Bangersは細いのでサイズを調整 */
+            font-size: 0.8em;
             text-align: left;
             padding: 5px;
             color: #555;
@@ -136,11 +135,31 @@
             display: none; /* Initially hidden */
         }
         
-        #start-screen {
-            /* initial-game-start()で初期表示されます */
+        /* --- Button Styles (Start/Restart) --- */
+        .pop-button {
+            padding: 10px 25px;
+            font-size: 1.2em;
+            font-family: 'Bangers', cursive;
+            cursor: pointer;
+            background-color: #57ffaa; /* Teal Pop Button */
+            color: #333;
+            border: 4px solid #8a2be2;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 6px #5757ff; /* Blue Pop Shadow */
+            transition: all 0.1s;
         }
         
-        .game-over-text {
+        #start-button {
+            font-size: 2em; /* Startボタンを大きく */
+        }
+
+        .pop-button:active {
+            box-shadow: 0 2px #5757ff;
+            transform: translateY(4px);
+        }
+
+        #game-over-screen .game-over-text {
             font-family: 'Bangers', cursive;
             font-size: 4em;
             color: #ff5757; /* Pop Red */
@@ -154,35 +173,6 @@
             font-weight: bold;
         }
 
-        /* --- Button Styles (Start/Restart) --- */
-        .pop-button {
-            padding: 10px 25px;
-            font-size: 1.5em; /* Startボタンを大きく */
-            font-family: 'Bangers', cursive;
-            cursor: pointer;
-            background-color: #57ffaa; /* Teal Pop Button */
-            color: #333;
-            border: 4px solid #8a2be2;
-            border-radius: 10px;
-            margin-top: 20px;
-            box-shadow: 0 6px #5757ff; /* Blue Pop Shadow */
-            transition: all 0.1s;
-        }
-
-        .pop-button:active {
-            box-shadow: 0 2px #5757ff;
-            transform: translateY(4px);
-        }
-        /* Restartボタンに適用 */
-        #restart-button {
-            font-size: 1.2em;
-        }
-        /* Startボタンに適用 */
-        #start-button {
-            font-size: 2em;
-        }
-
-
         /* --- Control Buttons Container --- */
         #control-buttons {
             display: none; /* 初期状態では非表示 */
@@ -195,9 +185,8 @@
 
         .game-button {
             padding: 10px 15px;
-            font-size: 1.5em; /* Increased size for icons */
-            font-family: 'Bangers', cursive; 
-            font-weight: bold;
+            font-size: 1em;
+            font-family: 'Bangers', cursive;
             cursor: pointer;
             background-color: #ffaa57; /* Orange */
             color: #333;
@@ -206,10 +195,6 @@
             box-shadow: 0 4px #ff5757; /* Red Shadow */
             transition: all 0.1s;
             flex-grow: 1; /* Distribute space evenly */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            line-height: 1; /* Adjust line height for icons */
         }
 
         .game-button:active {
@@ -226,17 +211,6 @@
         .game-button:last-child { background-color: #57ff57; box-shadow: 0 4px #57ffaa; } /* Green for Right */
         .game-button:last-child:active { box-shadow: 0 1px #57ffaa; }
 
-        /* Icon styles for buttons */
-        .arrow {
-            display: inline-block;
-            font-size: 1.5em; /* Size of the arrow */
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .rotate-icon {
-            font-size: 1.2em; /* Adjust for a good looking rotate icon */
-        }
     </style>
 </head>
 <body>
@@ -246,7 +220,7 @@
 <div id="main-wrapper">
     <div id="game-container">
         <div id="start-screen" class="game-overlay">
-            <p class="game-over-text" style="font-size: 3em; color: #8a2be2;">GET READY TO POP!</p>
+            <p class="game-over-text" style="font-size: 3em; color: #8a2be2;">PRESS START!</p>
             <button id="start-button" class="pop-button">START GAME</button>
         </div>
         
@@ -272,10 +246,10 @@
 </div>
 
 <div id="control-buttons">
-    <button class="game-button" id="btn-left"><span class="arrow">←</span></button>
-    <button class="game-button" id="btn-rotate"><span class="rotate-icon">&#x21BB;</span></button> 
-    <button class="game-button" id="btn-hard-drop">DROP!</button>
-    <button class="game-button" id="btn-right"><span class="arrow">→</span></button>
+    <button class="game-button" id="btn-left">Move Left</button>
+    <button class="game-button" id="btn-rotate">Rotate</button>
+    <button class="game-button" id="btn-hard-drop">Hard Drop</button>
+    <button class="game-button" id="btn-right">Move Right</button>
 </div>
 
 <script>
@@ -358,6 +332,7 @@
         gameOverScreen.style.display = 'none';
         controlButtons.style.display = 'none';
         
+        // ゲームループが動いていれば停止
         if (gameLoopInterval) clearInterval(gameLoopInterval);
     }
     
@@ -618,11 +593,10 @@
     // Keyboard controls
     document.addEventListener('keydown', (e) => {
         if (isGameOver || isGamePaused) {
-            if (e.key === 'Enter') {
-                if (isGamePaused && !isGameOver) {
-                    startGame(); // Start Game with Enter key
-                } else if (isGameOver) {
-                    initialGameStart(); // Restart Game with Enter key
+            // ゲームオーバー時またはスタート画面でEnterを押すと再開/スタート
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (isGamePaused) {
+                    startGame(); 
                 }
             }
             return;
@@ -660,7 +634,7 @@
 
     // Button controls (Mobile/Click)
     startButton.addEventListener('click', startGame);
-    restartButton.addEventListener('click', initialGameStart); // RestartボタンはinitialGameStartを呼ぶ
+    restartButton.addEventListener('click', initialGameStart);
     
     btnLeft.addEventListener('click', () => {
         if (moveBlock(-1, 0)) refreshBoard();
