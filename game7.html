@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pop Block Blast Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Global Styles */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f7d7e3; /* Soft Pink/Purple Pop Background */
+            margin: 0;
+            /* 全てのフォントをBangersに統一 */
+            font-family: 'Bangers', cursive; 
+            flex-direction: column;
+        }
+
+        /* Title Style */
+        h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 4em;
+            color: #ff69b4; /* Hot Pink */
+            text-shadow: 4px 4px #8a2be2; /* Blue Violet Pop Shadow */
+            margin-bottom: 20px;
+        }
+
+        /* Main Container */
+        #main-wrapper {
+            display: flex;
+            gap: 20px;
+            position: relative;
+        }
+
+        /* Game Board Styles */
+        #game-container {
+            border: 8px solid #8a2be2; /* Blue Violet Border */
+            border-radius: 15px; /* Rounded corners */
+            background-color: #ffffff; /* White background */
+            display: inline-block;
+            box-shadow: 10px 10px 0px 0px #ff69b4; /* Hot Pink Pop Shadow */
+            position: relative;
+            overflow: hidden; /* To keep cells inside the rounded border */
+        }
+
+        /* Info Panel (Score, etc.) */
+        #info-panel {
+            width: 150px;
+            padding: 15px;
+            background-color: #fff;
+            border: 4px solid #8a2be2;
+            border-radius: 10px;
+            box-shadow: 5px 5px 0px 0px #ff69b4;
+            text-align: center;
+            height: fit-content;
+        }
+        #info-panel h2 {
+            font-family: 'Bangers', cursive;
+            color: #8a2be2;
+            font-size: 1.5em;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+        #score-display {
+            font-family: 'Bangers', cursive;
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff69b4;
+            margin-bottom: 20px;
+        }
+        #controls-info {
+            font-size: 1em; /* Bangersは細いのでサイズを調整 */
+            text-align: left;
+            padding: 5px;
+            color: #555;
+            border-top: 2px dashed #ffb3e6; /* Rose dashed line */
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        #controls-info p {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+
+        /* Individual Cell Styles */
+        .cell {
+            width: 30px;
+            height: 30px;
+            box-sizing: border-box;
+            border: 1px solid #f0f0f0; /* Very light cell borders */
+            float: left;
+        }
+
+        /* Pop Color Definitions (Block Styles) */
+        .block-red { background-color: #ff5757; border: 2px outset #ff8a8a; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-blue { background-color: #5757ff; border: 2px outset #8a8aff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-green { background-color: #57ff57; border: 2px outset #8aff8a; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-yellow { background-color: #ffff57; border: 2px outset #ffff8a; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-purple { background-color: #ff57ff; border: 2px outset #ff8aff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-orange { background-color: #ffaa57; border: 2px outset #ffcc8a; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-cyan { background-color: #57ffff; border: 2px outset #8affff; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-pink { background-color: #ff57aa; border: 2px outset #ff8acc; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-lime { background-color: #aaff57; border: 2px outset #ccff8a; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-teal { background-color: #57ffaa; border: 2px outset #8affcc; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+        .block-navy { background-color: #57aaff; border: 2px outset #8accee; box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); }
+
+
+        /* Clearfix for rows */
+        .row::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+
+        /* --- Overlay Screens (Start, Game Over) --- */
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.98);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            border-radius: 15px;
+        }
+
+        #game-over-screen {
+            display: none; /* Initially hidden */
+        }
+        
+        #start-screen {
+            /* initial-game-start()で初期表示されます */
+        }
+        
+        .game-over-text {
+            font-family: 'Bangers', cursive;
+            font-size: 4em;
+            color: #ff5757; /* Pop Red */
+            text-shadow: 3px 3px #8a2be2;
+            margin-bottom: 5px;
+        }
+
+        #final-score {
+            font-size: 1.5em;
+            color: #8a2be2; /* Pop Blue Violet */
+            font-weight: bold;
+        }
+
+        /* --- Button Styles (Start/Restart) --- */
+        .pop-button {
+            padding: 10px 25px;
+            font-size: 1.5em; /* Startボタンを大きく */
+            font-family: 'Bangers', cursive;
+            cursor: pointer;
+            background-color: #57ffaa; /* Teal Pop Button */
+            color: #333;
+            border: 4px solid #8a2be2;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 6px #5757ff; /* Blue Pop Shadow */
+            transition: all 0.1s;
+        }
+
+        .pop-button:active {
+            box-shadow: 0 2px #5757ff;
+            transform: translateY(4px);
+        }
+        /* Restartボタンに適用 */
+        #restart-button {
+            font-size: 1.2em;
+        }
+        /* Startボタンに適用 */
+        #start-button {
+            font-size: 2em;
+        }
+
+
+        /* --- Control Buttons Container --- */
+        #control-buttons {
+            display: none; /* 初期状態では非表示 */
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%; /* Full width to center under game */
+            max-width: 520px; /* Match game board width */
+        }
+
+        .game-button {
+            padding: 10px 15px;
+            font-size: 1.5em; /* Increased size for icons */
+            font-family: 'Bangers', cursive; 
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #ffaa57; /* Orange */
+            color: #333;
+            border: 3px solid #ff69b4; /* Hot Pink Border */
+            border-radius: 8px;
+            box-shadow: 0 4px #ff5757; /* Red Shadow */
+            transition: all 0.1s;
+            flex-grow: 1; /* Distribute space evenly */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1; /* Adjust line height for icons */
+        }
+
+        .game-button:active {
+            box-shadow: 0 1px #ff5757;
+            transform: translateY(3px);
+        }
+
+        .game-button:first-child { background-color: #57aaff; box-shadow: 0 4px #5757ff; } /* Blue for Left */
+        .game-button:first-child:active { box-shadow: 0 1px #5757ff; }
+        .game-button:nth-child(2) { background-color: #ff57ff; box-shadow: 0 4px #ff57aa; } /* Purple for Rotate */
+        .game-button:nth-child(2):active { box-shadow: 0 1px #ff57aa; }
+        .game-button:nth-child(3) { background-color: #ffff57; box-shadow: 0 4px #ffaa57; } /* Yellow for Hard Drop */
+        .game-button:nth-child(3):active { box-shadow: 0 1px #ffaa57; }
+        .game-button:last-child { background-color: #57ff57; box-shadow: 0 4px #57ffaa; } /* Green for Right */
+        .game-button:last-child:active { box-shadow: 0 1px #57ffaa; }
+
+        /* Icon styles for buttons */
+        .arrow {
+            display: inline-block;
+            font-size: 1.5em; /* Size of the arrow */
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .rotate-icon {
+            font-size: 1.2em; /* Adjust for a good looking rotate icon */
+        }
+    </style>
+</head>
+<body>
+
+<h1>POP BLOCK BLAST!</h1>
+
+<div id="main-wrapper">
+    <div id="game-container">
+        <div id="start-screen" class="game-overlay">
+            <p class="game-over-text" style="font-size: 3em; color: #8a2be2;">GET READY TO POP!</p>
+            <button id="start-button" class="pop-button">START GAME</button>
+        </div>
+        
+        <div id="game-over-screen" class="game-overlay">
+            <p class="game-over-text">GAME OVER</p>
+            <div id="final-score"></div>
+            <button id="restart-button" class="pop-button">RESTART</button>
+        </div>
+    </div>
+
+    <div id="info-panel">
+        <h2>SCORE</h2>
+        <div id="score-display">0</div>
+        
+        <div id="controls-info">
+            <p>Keyboard Controls:</p>
+            <p>← → : Move</p>
+            <p>↓ : Soft Drop</p>
+            <p>↑ or Space : Rotate</p>
+            <p>Enter : Hard Drop</p>
+        </div>
+    </div>
+</div>
+
+<div id="control-buttons">
+    <button class="game-button" id="btn-left"><span class="arrow">←</span></button>
+    <button class="game-button" id="btn-rotate"><span class="rotate-icon">&#x21BB;</span></button> 
+    <button class="game-button" id="btn-hard-drop">DROP!</button>
+    <button class="game-button" id="btn-right"><span class="arrow">→</span></button>
+</div>
+
+<script>
+    // --- Game Configuration ---
+    const COLS = 10;
+    const ROWS = 20;
+    const BLOCK_SIZE = 30;
+    let DROP_INTERVAL = 1000;
+
+    // Pop Block color class names (matching CSS)
+    const COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'cyan', 'pink', 'lime', 'teal', 'navy'];
+
+    // Block shapes (Standard Tetrominoes and many Pentominoes)
+    const SHAPES = [
+        // Standard Tetrominoes (4 cells)
+        [[1, 1, 1, 1]],            // I-Block
+        [[1, 1], [1, 1]],          // O-Block
+        [[0, 1, 0], [1, 1, 1]],    // T-Block
+        [[1, 1, 0], [0, 1, 1]],    // Z-Block
+        [[0, 1, 1], [1, 1, 0]],    // S-Block
+        [[1, 0, 0], [1, 1, 1]],    // J-Block
+        [[0, 0, 1], [1, 1, 1]],    // L-Block
+
+        // Pentominoes (5 cells) - Added for complexity and variety
+        [[1, 1, 1], [1, 0, 0], [1, 0, 0]], 
+        [[0, 1, 0], [1, 1, 1], [0, 1, 0]], 
+        [[1, 1, 0], [0, 1, 0], [0, 1, 1]], 
+        [[1, 1, 1, 1, 1]],                 
+        [[1, 0, 0], [1, 0, 0], [1, 1, 1]], 
+        [[1, 1], [1, 0], [1, 0], [1, 0]],  
+        [[0, 1, 1], [1, 1, 0], [0, 1, 0]], 
+        [[1, 1, 1], [1, 1, 0]],            
+        [[1, 1, 0], [0, 1, 1], [0, 0, 1]]  
+    ];
+
+
+    // --- Game Variables ---
+    let board = [];
+    let currentBlock;
+    let currentBlockX;
+    let currentBlockY;
+    let currentBlockColor;
+    let gameLoopInterval;
+    let score = 0;
+    let isGameOver = false;
+    let isGamePaused = true; // ゲーム開始前は一時停止状態
+
+    // --- DOM Elements ---
+    const container = document.getElementById('game-container');
+    const scoreDisplay = document.getElementById('score-display');
+    const startScreen = document.getElementById('start-screen'); // Start Screen
+    const startButton = document.getElementById('start-button'); // Start Button
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreDisplay = document.getElementById('final-score');
+    const restartButton = document.getElementById('restart-button');
+    const controlButtons = document.getElementById('control-buttons'); // ボタンコンテナ
+    
+    // Control Buttons
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnRotate = document.getElementById('btn-rotate');
+    const btnHardDrop = document.getElementById('btn-hard-drop');
+
+
+    // --- Core Functions ---
+
+    /** ゲームを初期化し、スタート画面を表示する（実際のゲームは開始しない） */
+    function initialGameStart() {
+        // ボードのDOM構造だけ作成
+        initBoardStructure();
+        
+        // スコアと状態をリセット
+        score = 0;
+        isGameOver = false;
+        isGamePaused = true; 
+        scoreDisplay.textContent = score;
+
+        // スタート画面を表示し、コントロールボタンを非表示にする
+        startScreen.style.display = 'flex';
+        gameOverScreen.style.display = 'none';
+        controlButtons.style.display = 'none';
+        
+        if (gameLoopInterval) clearInterval(gameLoopInterval);
+    }
+    
+    /** 実際にゲームを開始/再開する */
+    function startGame() {
+        isGamePaused = false;
+        startScreen.style.display = 'none';
+        controlButtons.style.display = 'flex'; // ボタンを表示
+
+        // ゲーム状態をリセットしてスタート
+        board = [];
+        DROP_INTERVAL = 1000;
+        
+        // ボードを初期化して空にする
+        for (let y = 0; y < ROWS; y++) {
+            board[y] = new Array(COLS).fill(0);
+        }
+        refreshBoard(); // 空のボードを描画
+        
+        spawnBlock();
+        refreshBoard();
+        
+        // ゲームループを開始
+        if (gameLoopInterval) clearInterval(gameLoopInterval);
+        gameLoopInterval = setInterval(dropBlock, DROP_INTERVAL);
+    }
+
+    /** ボードのDOM構造だけをセットアップする */
+    function initBoardStructure() {
+        container.innerHTML = '';
+        container.style.width = `${COLS * BLOCK_SIZE}px`;
+        container.style.height = `${ROWS * BLOCK_SIZE}px`;
+
+        for (let y = 0; y < ROWS; y++) {
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row';
+            rowDiv.style.height = `${BLOCK_SIZE}px`;
+
+            for (let x = 0; x < COLS; x++) {
+                const cellDiv = document.createElement('div');
+                cellDiv.className = 'cell';
+                cellDiv.id = `cell-${x}-${y}`;
+                rowDiv.appendChild(cellDiv);
+            }
+            container.appendChild(rowDiv);
+        }
+        // Overlay Screensを再配置
+        container.appendChild(startScreen);
+        container.appendChild(gameOverScreen);
+    }
+
+    /** Spawns a new random block at the top center */
+    function spawnBlock() {
+        const randomIndex = Math.floor(Math.random() * SHAPES.length);
+        currentBlock = SHAPES[randomIndex];
+        currentBlockColor = COLORS[randomIndex % COLORS.length]; 
+        currentBlockX = Math.floor(COLS / 2) - Math.floor(currentBlock[0].length / 2);
+        currentBlockY = 0; 
+
+        if (!isValidMove(currentBlock, currentBlockX, currentBlockY)) {
+            gameOver();
+        }
+    }
+
+    /** Checks if a block can be moved to a specific position (dx, dy) */
+    function isValidMove(shape, dx, dy) {
+        for (let y = 0; y < shape.length; y++) {
+            for (let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x]) {
+                    const newX = dx + x;
+                    const newY = dy + y;
+
+                    // 1. Boundary check
+                    if (newX < 0 || newX >= COLS || newY >= ROWS) {
+                        return false;
+                    }
+
+                    // 2. Collision check with locked blocks
+                    if (newY >= 0 && newY < ROWS && board[newY][newX] > 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Redraws the entire board state and the current falling block */
+    function refreshBoard() {
+        if (isGameOver || isGamePaused) return;
+        
+        // 1. Clear and Draw Locked Blocks
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const cell = document.getElementById(`cell-${x}-${y}`);
+                if (cell) {
+                    if (board[y][x] > 0) {
+                        const colorIndex = board[y][x] - 1;
+                        cell.className = `cell block-${COLORS[colorIndex]}`;
+                    } else {
+                        cell.className = 'cell';
+                    }
+                }
+            }
+        }
+
+        // 2. Draw the currently falling block
+        drawBlock(currentBlock, currentBlockX, currentBlockY, currentBlockColor);
+    }
+
+    /** Helper to add color classes for the current block's cells */
+    function drawBlock(shape, dx, dy, colorClass) {
+        for (let y = 0; y < shape.length; y++) {
+            for (let x = 0; x < shape[y].length; x++) {
+                if (shape[y][x] && dy + y >= 0 && dy + y < ROWS && dx + x >= 0 && dx + x < COLS) {
+                    const cell = document.getElementById(`cell-${dx + x}-${dy + y}`);
+                    if (cell) {
+                        cell.className = `cell block-${colorClass}`;
+                    }
+                }
+            }
+        }
+    }
+
+
+    // --- Game Loop Actions ---
+
+    /** Moves the block down one step (auto or soft drop) */
+    function dropBlock() {
+        if (isGameOver || isGamePaused) return;
+
+        if (moveBlock(0, 1)) {
+            refreshBoard();
+        } else {
+            lockBlock();
+            checkAndClearLines();
+            spawnBlock();
+            refreshBoard();
+        }
+    }
+
+    /** Locks the current block onto the board array */
+    function lockBlock() {
+        const colorId = COLORS.indexOf(currentBlockColor) + 1;
+
+        for (let y = 0; y < currentBlock.length; y++) {
+            for (let x = 0; x < currentBlock[y].length; x++) {
+                if (currentBlock[y][x]) {
+                    if (currentBlockY + y >= 0) {
+                        board[currentBlockY + y][currentBlockX + x] = colorId;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Checks for and clears full lines, then updates the score */
+    function checkAndClearLines() {
+        let linesCleared = 0;
+        
+        for (let y = ROWS - 1; y >= 0; y--) {
+            if (board[y].every(cell => cell > 0)) {
+                board.splice(y, 1);
+                board.unshift(new Array(COLS).fill(0));
+                linesCleared++;
+                y++;
+            }
+        }
+        
+        if (linesCleared > 0) {
+            updateScore(linesCleared);
+        }
+    }
+
+    /** Updates the score and adjusts game difficulty */
+    function updateScore(linesCleared) {
+        const scoreMultipliers = [0, 100, 300, 500, 800];
+        const addedScore = scoreMultipliers[linesCleared] || 0;
+        score += addedScore;
+        scoreDisplay.textContent = score;
+
+        if (score > 0 && Math.floor(score / 5000) > Math.floor((score - addedScore) / 5000)) {
+            DROP_INTERVAL = Math.max(100, DROP_INTERVAL * 0.85); 
+            clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(dropBlock, DROP_INTERVAL);
+        }
+    }
+
+    /** Attempts to move the block by (dx, dy) */
+    function moveBlock(dx, dy) {
+        if (isGameOver || isGamePaused) return false;
+        
+        if (isValidMove(currentBlock, currentBlockX + dx, currentBlockY + dy)) {
+            currentBlockX += dx;
+            currentBlockY += dy;
+            return true;
+        }
+        return false;
+    }
+
+    /** Rotates the block 90 degrees clockwise if possible */
+    function rotateBlock() {
+        if (isGameOver || isGamePaused) return;
+        
+        const newShape = currentBlock[0].map((_, colIndex) =>
+            currentBlock.map(row => row[colIndex]).reverse()
+        );
+
+        if (isValidMove(newShape, currentBlockX, currentBlockY)) {
+            currentBlock = newShape;
+            refreshBoard();
+        } else {
+            // Basic wall kick
+            if (isValidMove(newShape, currentBlockX - 1, currentBlockY)) {
+                currentBlockX -= 1;
+                currentBlock = newShape;
+                refreshBoard();
+            } else if (isValidMove(newShape, currentBlockX + 1, currentBlockY)) {
+                currentBlockX += 1;
+                currentBlock = newShape;
+                refreshBoard();
+            }
+        }
+    }
+
+    /** Drops the block instantly to the bottom */
+    function hardDrop() {
+        if (isGameOver || isGamePaused) return;
+
+        let dropDistance = 0;
+        while (isValidMove(currentBlock, currentBlockX, currentBlockY + 1)) {
+            currentBlockY++;
+            dropDistance++;
+        }
+        
+        if (dropDistance > 0) {
+            score += dropDistance * 5;
+            scoreDisplay.textContent = score;
+        }
+        
+        dropBlock(); // Lock the block and spawn a new one
+    }
+    
+    /** Handles the Game Over state */
+    function gameOver() {
+        isGameOver = true;
+        isGamePaused = true;
+        clearInterval(gameLoopInterval);
+        
+        finalScoreDisplay.textContent = `Final Score: ${score}`;
+        gameOverScreen.style.display = 'flex';
+        controlButtons.style.display = 'none'; // ボタンを非表示
+    }
+
+
+    // --- Event Listeners (Key Controls and Buttons) ---
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+        if (isGameOver || isGamePaused) {
+            if (e.key === 'Enter') {
+                if (isGamePaused && !isGameOver) {
+                    startGame(); // Start Game with Enter key
+                } else if (isGameOver) {
+                    initialGameStart(); // Restart Game with Enter key
+                }
+            }
+            return;
+        }
+
+        let moved = false;
+        switch (e.key) {
+            case 'ArrowLeft':
+                moved = moveBlock(-1, 0);
+                break;
+            case 'ArrowRight':
+                moved = moveBlock(1, 0);
+                break;
+            case 'ArrowDown': // Soft drop
+                dropBlock();
+                e.preventDefault(); 
+                return;
+            case 'ArrowUp':
+            case ' ': // Spacebar for rotation
+                rotateBlock();
+                e.preventDefault(); 
+                return;
+            case 'Enter': // Enter key for hard drop
+                hardDrop();
+                e.preventDefault();
+                return;
+            default:
+                return;
+        }
+
+        if (moved) {
+            refreshBoard();
+        }
+    });
+
+    // Button controls (Mobile/Click)
+    startButton.addEventListener('click', startGame);
+    restartButton.addEventListener('click', initialGameStart); // RestartボタンはinitialGameStartを呼ぶ
+    
+    btnLeft.addEventListener('click', () => {
+        if (moveBlock(-1, 0)) refreshBoard();
+    });
+    btnRight.addEventListener('click', () => {
+        if (moveBlock(1, 0)) refreshBoard();
+    });
+    btnRotate.addEventListener('click', rotateBlock);
+    btnHardDrop.addEventListener('click', hardDrop);
+
+
+    // Start the game by initializing the screen
+    initialGameStart();
+
+</script>
+
+</body>
+</html>
