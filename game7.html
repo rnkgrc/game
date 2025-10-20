@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pop Block Blast Game</title>
+    <title>BLOCK GAME</title>
     <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         /* Global Styles */
@@ -215,7 +215,7 @@
 </head>
 <body>
 
-<h1>POP BLOCK BLAST!</h1>
+<h1>BLOCK GAME</h1>
 
 <div id="main-wrapper">
     <div id="game-container">
@@ -257,6 +257,11 @@
     const ROWS = 20;
     const BLOCK_SIZE = 30;
     let DROP_INTERVAL = 1000;
+    
+    // スコアリング定数
+    const BLOCK_SCORE = 10;  // ブロック1つ固定で10点
+    const LINE_SCORE = 100;  // 1列消去で100点
+    const HARD_DROP_BONUS = 5; // ハードドロップ1マスにつき5点
 
     // Pop Block color class names (matching CSS)
     const COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'cyan', 'pink', 'lime', 'teal', 'navy'];
@@ -345,7 +350,7 @@
         board = [];
         DROP_INTERVAL = 1000;
         
-        // 修正: ボードを初期化し、空配列を格納
+        // ボードを初期化し、空配列を格納
         for (let y = 0; y < ROWS; y++) {
             board[y] = new Array(COLS).fill(0);
         }
@@ -486,6 +491,9 @@
                 }
             }
         }
+        // 修正: ブロック1つを固定するごとに10点加算
+        score += BLOCK_SCORE; 
+        scoreDisplay.textContent = score;
     }
 
     /** Checks for and clears full lines, then updates the score */
@@ -508,11 +516,12 @@
 
     /** Updates the score and adjusts game difficulty */
     function updateScore(linesCleared) {
-        const scoreMultipliers = [0, 100, 300, 500, 800];
-        const addedScore = scoreMultipliers[linesCleared] || 0;
+        // 修正: 1列あたり100点として計算
+        const addedScore = linesCleared * LINE_SCORE;
         score += addedScore;
         scoreDisplay.textContent = score;
 
+        // Difficulty adjustment (speed up every 5000 points)
         if (score > 0 && Math.floor(score / 5000) > Math.floor((score - addedScore) / 5000)) {
             DROP_INTERVAL = Math.max(100, DROP_INTERVAL * 0.85); 
             clearInterval(gameLoopInterval);
@@ -532,7 +541,7 @@
         return false;
     }
 
-    /** Rotates the block 90 degrees clockwise if possible */
+    /** Rotates the block 90 degrees clockwise if可能 */
     function rotateBlock() {
         if (isGameOver || isGamePaused) return;
         
@@ -568,7 +577,8 @@
         }
         
         if (dropDistance > 0) {
-            score += dropDistance * 5;
+            // ハードドロップボーナスを適用
+            score += dropDistance * HARD_DROP_BONUS; 
             scoreDisplay.textContent = score;
         }
         
