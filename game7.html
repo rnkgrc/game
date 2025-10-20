@@ -261,7 +261,7 @@
     // スコアリング定数
     const BLOCK_SCORE = 10;  // ブロック1つ固定で10点
     const LINE_SCORE = 100;  // 1列消去で100点
-    const HARD_DROP_BONUS = 5; // ハードドロップ1マスにつき5点
+    // const HARD_DROP_BONUS = 5; // ハードドロップボーナスは削除
 
     // Pop Block color class names (matching CSS)
     const COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'cyan', 'pink', 'lime', 'teal', 'navy'];
@@ -491,9 +491,9 @@
                 }
             }
         }
-        // 修正: ブロック1つを固定するごとに10点加算
+        // ブロック1つを固定するごとに10点加算
         score += BLOCK_SCORE; 
-        scoreDisplay.textContent = score;
+        scoreDisplay.textContent = score; // スコア表示をここで確実に更新
     }
 
     /** Checks for and clears full lines, then updates the score */
@@ -516,10 +516,10 @@
 
     /** Updates the score and adjusts game difficulty */
     function updateScore(linesCleared) {
-        // 修正: 1列あたり100点として計算
+        // 1列あたり100点として計算
         const addedScore = linesCleared * LINE_SCORE;
         score += addedScore;
-        scoreDisplay.textContent = score;
+        scoreDisplay.textContent = score; // スコア表示をここで確実に更新
 
         // Difficulty adjustment (speed up every 5000 points)
         if (score > 0 && Math.floor(score / 5000) > Math.floor((score - addedScore) / 5000)) {
@@ -570,19 +570,13 @@
     function hardDrop() {
         if (isGameOver || isGamePaused) return;
 
-        let dropDistance = 0;
+        // Find the lowest valid position
         while (isValidMove(currentBlock, currentBlockX, currentBlockY + 1)) {
             currentBlockY++;
-            dropDistance++;
         }
         
-        if (dropDistance > 0) {
-            // ハードドロップボーナスを適用
-            score += dropDistance * HARD_DROP_BONUS; 
-            scoreDisplay.textContent = score;
-        }
-        
-        dropBlock(); // Lock the block and spawn a new one
+        // 着地 (dropBlockがlockBlockを呼び出し、ブロック固定スコア(10点)が加算される)
+        dropBlock(); 
     }
     
     /** Handles the Game Over state */
