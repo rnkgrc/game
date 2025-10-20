@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Pop Block Blast Game</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         /* Global Styles */
         body {
@@ -13,7 +13,8 @@
             height: 100vh;
             background-color: #f7d7e3; /* Soft Pink/Purple Pop Background */
             margin: 0;
-            font-family: 'Quicksand', sans-serif; /* Main UI Font - more rounded */
+            /* 全てのフォントをBangersに統一 */
+            font-family: 'Bangers', cursive; 
             flex-direction: column;
         }
 
@@ -70,7 +71,7 @@
             margin-bottom: 20px;
         }
         #controls-info {
-            font-size: 0.8em;
+            font-size: 1em; /* Bangersは細いのでサイズを調整 */
             text-align: left;
             padding: 5px;
             color: #555;
@@ -177,7 +178,8 @@
         .game-button {
             padding: 10px 15px;
             font-size: 1.5em; /* Increased size for icons */
-            font-family: 'Quicksand', sans-serif; /* Rounded font for text */
+            /* フォントをBangersに統一 */
+            font-family: 'Bangers', cursive; 
             font-weight: bold;
             cursor: pointer;
             background-color: #ffaa57; /* Orange */
@@ -249,7 +251,8 @@
 
 <div id="control-buttons">
     <button class="game-button" id="btn-left"><span class="arrow">←</span></button>
-    <button class="game-button" id="btn-rotate"><span class="rotate-icon">&#x21BB;</span></button> <button class="game-button" id="btn-hard-drop">DROP!</button>
+    <button class="game-button" id="btn-rotate"><span class="rotate-icon">&#x21BB;</span></button> 
+    <button class="game-button" id="btn-hard-drop">DROP!</button>
     <button class="game-button" id="btn-right"><span class="arrow">→</span></button>
 </div>
 
@@ -278,360 +281,4 @@
         [[1, 1, 1], [1, 0, 0], [1, 0, 0]], // F-Pentomino-like (rotated L)
         [[0, 1, 0], [1, 1, 1], [0, 1, 0]], // P-Pentomino-like (Plus/X)
         [[1, 1, 0], [0, 1, 0], [0, 1, 1]], // Y-Pentomino-like
-        [[1, 1, 1, 1, 1]],                 // Straight 5 (I-Pentomino)
-        [[1, 0, 0], [1, 0, 0], [1, 1, 1]], // L-Pentomino
-        [[1, 1], [1, 0], [1, 0], [1, 0]],  // Another L variant
-        [[0, 1, 1], [1, 1, 0], [0, 1, 0]], // P-Pentomino
-        [[1, 1, 1], [1, 1, 0]],            // F-Pentomino
-        [[1, 1, 0], [0, 1, 1], [0, 0, 1]]  // Z-Pentomino
-    ];
-
-
-    // --- Game Variables ---
-    let board = [];
-    let currentBlock;
-    let currentBlockX;
-    let currentBlockY;
-    let currentBlockColor;
-    let gameLoopInterval;
-    let score = 0;
-    let isGameOver = false;
-
-    // --- DOM Elements ---
-    const container = document.getElementById('game-container');
-    const scoreDisplay = document.getElementById('score-display');
-    const gameOverScreen = document.getElementById('game-over-screen');
-    const finalScoreDisplay = document.getElementById('final-score');
-    const restartButton = document.getElementById('restart-button');
-    // New Control Buttons
-    const btnLeft = document.getElementById('btn-left');
-    const btnRight = document.getElementById('btn-right');
-    const btnRotate = document.getElementById('btn-rotate');
-    const btnHardDrop = document.getElementById('btn-hard-drop');
-
-
-    // --- Core Functions ---
-
-    /** Initializes all game variables and starts the loop */
-    function initGame() {
-        // Reset variables
-        board = [];
-        score = 0;
-        isGameOver = false;
-        DROP_INTERVAL = 1000;
-
-        // Reset DOM
-        container.innerHTML = '';
-        gameOverScreen.style.display = 'none';
-        scoreDisplay.textContent = score;
-
-        initBoard();
-        spawnBlock();
-        
-        // Clear old interval and set up a new one
-        if (gameLoopInterval) clearInterval(gameLoopInterval);
-        gameLoopInterval = setInterval(dropBlock, DROP_INTERVAL);
-    }
-    
-    /** Sets up the game board grid and DOM structure */
-    function initBoard() {
-        // Set container size based on COLS, ROWS, and BLOCK_SIZE
-        container.style.width = `${COLS * BLOCK_SIZE}px`;
-        container.style.height = `${ROWS * BLOCK_SIZE}px`;
-
-        for (let y = 0; y < ROWS; y++) {
-            board[y] = [];
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'row';
-            rowDiv.style.height = `${BLOCK_SIZE}px`;
-
-            for (let x = 0; x < COLS; x++) {
-                board[y][x] = 0;
-                const cellDiv = document.createElement('div');
-                cellDiv.className = 'cell';
-                cellDiv.id = `cell-${x}-${y}`;
-                rowDiv.appendChild(cellDiv);
-            }
-            container.appendChild(rowDiv);
-        }
-        // Re-append the Game Over screen to ensure it's on top of the cells
-        container.appendChild(gameOverScreen);
-    }
-
-    /** Spawns a new random block at the top center */
-    function spawnBlock() {
-        const randomIndex = Math.floor(Math.random() * SHAPES.length);
-        currentBlock = SHAPES[randomIndex];
-        // Ensure color array has enough elements or loop around
-        currentBlockColor = COLORS[randomIndex % COLORS.length]; 
-        currentBlockX = Math.floor(COLS / 2) - Math.floor(currentBlock[0].length / 2);
-        currentBlockY = 0; // Start at the very top (can be slightly off-screen)
-
-        // Check for Game Over condition
-        if (!isValidMove(currentBlock, currentBlockX, currentBlockY)) {
-            gameOver();
-        }
-    }
-
-    /** Checks if a block can be moved to a specific position (dx, dy) */
-    function isValidMove(shape, dx, dy) {
-        for (let y = 0; y < shape.length; y++) {
-            for (let x = 0; x < shape[y].length; x++) {
-                if (shape[y][x]) {
-                    const newX = dx + x;
-                    const newY = dy + y;
-
-                    // 1. Boundary check
-                    if (newX < 0 || newX >= COLS || newY >= ROWS) {
-                        return false;
-                    }
-
-                    // 2. Collision check with locked blocks
-                    // Only check if newY is within the board bounds (not negative)
-                    if (newY >= 0 && newY < ROWS && board[newY][newX] > 0) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    /** Redraws the entire board state and the current falling block */
-    function refreshBoard() {
-        if (isGameOver) return;
-        
-        // 1. Clear all cells to be redrawn
-        for (let y = 0; y < ROWS; y++) {
-            for (let x = 0; x < COLS; x++) {
-                const cell = document.getElementById(`cell-${x}-${y}`);
-                if (cell) {
-                    if (board[y][x] > 0) {
-                        // Locked block
-                        const colorIndex = board[y][x] - 1;
-                        cell.className = `cell block-${COLORS[colorIndex]}`;
-                    } else {
-                        // Empty cell
-                        cell.className = 'cell';
-                    }
-                }
-            }
-        }
-
-        // 2. Draw the currently falling block
-        drawBlock(currentBlock, currentBlockX, currentBlockY, currentBlockColor);
-    }
-
-    /** Helper to add color classes for the current block's cells */
-    function drawBlock(shape, dx, dy, colorClass) {
-        for (let y = 0; y < shape.length; y++) {
-            for (let x = 0; x < shape[y].length; x++) {
-                // Check if the current shape cell is part of the block AND within the visible board
-                if (shape[y][x] && dy + y >= 0 && dy + y < ROWS && dx + x >= 0 && dx + x < COLS) {
-                    const cell = document.getElementById(`cell-${dx + x}-${dy + y}`);
-                    if (cell) {
-                        // Apply the block's color class
-                        cell.className = `cell block-${colorClass}`;
-                    }
-                }
-            }
-        }
-    }
-
-
-    // --- Game Loop Actions ---
-
-    /** Moves the block down one step (auto or soft drop) */
-    function dropBlock() {
-        if (isGameOver) return;
-
-        if (moveBlock(0, 1)) {
-            // Success: Block moved down
-            refreshBoard();
-        } else {
-            // Failure: Block hit the bottom or another block
-            lockBlock();
-            checkAndClearLines();
-            spawnBlock();
-            refreshBoard();
-        }
-    }
-
-    /** Locks the current block onto the board array */
-    function lockBlock() {
-        const colorId = COLORS.indexOf(currentBlockColor) + 1; // 1-based ID
-
-        for (let y = 0; y < currentBlock.length; y++) {
-            for (let x = 0; x < currentBlock[y].length; x++) {
-                if (currentBlock[y][x]) {
-                    if (currentBlockY + y >= 0) { // Only lock if it's on or below the top boundary
-                        board[currentBlockY + y][currentBlockX + x] = colorId;
-                    }
-                }
-            }
-        }
-    }
-
-    /** Checks for and clears full lines, then updates the score */
-    function checkAndClearLines() {
-        let linesCleared = 0;
-        
-        for (let y = ROWS - 1; y >= 0; y--) {
-            // Check if the row is full (contains no 0s)
-            if (board[y].every(cell => cell > 0)) {
-                // Remove the full row
-                board.splice(y, 1);
-                // Add a new empty row to the top
-                board.unshift(new Array(COLS).fill(0));
-                linesCleared++;
-                // Check the same row index again since all rows shifted down
-                y++;
-            }
-        }
-        
-        if (linesCleared > 0) {
-            updateScore(linesCleared);
-        }
-    }
-
-    /** Updates the score and adjusts game difficulty */
-    function updateScore(linesCleared) {
-        // Scoring: 100, 300, 500, 800 for 1, 2, 3, 4 lines respectively
-        const scoreMultipliers = [0, 100, 300, 500, 800];
-        const addedScore = scoreMultipliers[linesCleared] || 0;
-        score += addedScore;
-        scoreDisplay.textContent = score;
-
-        // Difficulty adjustment (speed up every 5000 points)
-        if (score > 0 && Math.floor(score / 5000) > Math.floor((score - addedScore) / 5000)) {
-            DROP_INTERVAL = Math.max(100, DROP_INTERVAL * 0.85); // Speed up (min 100ms)
-            clearInterval(gameLoopInterval);
-            gameLoopInterval = setInterval(dropBlock, DROP_INTERVAL);
-        }
-    }
-
-    /** Attempts to move the block by (dx, dy) */
-    function moveBlock(dx, dy) {
-        if (isGameOver) return false;
-        
-        if (isValidMove(currentBlock, currentBlockX + dx, currentBlockY + dy)) {
-            currentBlockX += dx;
-            currentBlockY += dy;
-            return true;
-        }
-        return false;
-    }
-
-    /** Rotates the block 90 degrees clockwise if possible */
-    function rotateBlock() {
-        if (isGameOver) return;
-        
-        // Transpose and reverse rows for 90-degree rotation
-        const newShape = currentBlock[0].map((_, colIndex) =>
-            currentBlock.map(row => row[colIndex]).reverse()
-        );
-
-        if (isValidMove(newShape, currentBlockX, currentBlockY)) {
-            currentBlock = newShape;
-            refreshBoard();
-        } else {
-            // Basic wall kick: try moving 1 space left or right
-            if (isValidMove(newShape, currentBlockX - 1, currentBlockY)) {
-                currentBlockX -= 1;
-                currentBlock = newShape;
-                refreshBoard();
-            } else if (isValidMove(newShape, currentBlockX + 1, currentBlockY)) {
-                currentBlockX += 1;
-                currentBlock = newShape;
-                refreshBoard();
-            }
-        }
-    }
-
-    /** Drops the block instantly to the bottom */
-    function hardDrop() {
-        if (isGameOver) return;
-
-        let dropDistance = 0;
-        // Find the lowest valid position
-        while (isValidMove(currentBlock, currentBlockX, currentBlockY + 1)) {
-            currentBlockY++;
-            dropDistance++;
-        }
-        
-        if (dropDistance > 0) {
-            score += dropDistance * 5; // Extra points for hard drop
-            scoreDisplay.textContent = score;
-        }
-        
-        dropBlock(); // Lock the block and spawn a new one
-    }
-    
-    /** Handles the Game Over state */
-    function gameOver() {
-        isGameOver = true;
-        clearInterval(gameLoopInterval);
-        
-        finalScoreDisplay.textContent = `Final Score: ${score}`;
-        gameOverScreen.style.display = 'flex';
-    }
-
-
-    // --- Event Listeners (Key Controls and Buttons) ---
-
-    // Keyboard controls
-    document.addEventListener('keydown', (e) => {
-        if (isGameOver) return;
-
-        let moved = false;
-        switch (e.key) {
-            case 'ArrowLeft':
-                moved = moveBlock(-1, 0);
-                break;
-            case 'ArrowRight':
-                moved = moveBlock(1, 0);
-                break;
-            case 'ArrowDown': // Soft drop
-                dropBlock();
-                e.preventDefault(); 
-                return;
-            case 'ArrowUp':
-            case ' ': // Spacebar for rotation
-                rotateBlock();
-                e.preventDefault(); 
-                return;
-            case 'Enter': // Enter key for hard drop
-                hardDrop();
-                e.preventDefault();
-                return;
-            default:
-                return;
-        }
-
-        if (moved) {
-            refreshBoard();
-        }
-    });
-
-    // Button controls
-    btnLeft.addEventListener('click', () => {
-        if (moveBlock(-1, 0)) refreshBoard();
-    });
-    btnRight.addEventListener('click', () => {
-        if (moveBlock(1, 0)) refreshBoard();
-    });
-    btnRotate.addEventListener('click', rotateBlock);
-    btnHardDrop.addEventListener('click', hardDrop);
-
-    // Restart button
-    restartButton.addEventListener('click', () => {
-        initGame();
-    });
-
-    // Start the game!
-    initGame();
-
-</script>
-
-</body>
-</html>
+        [[1, 1, 1, 1, 1
