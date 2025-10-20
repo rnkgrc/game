@@ -220,7 +220,6 @@
 <div id="main-wrapper">
     <div id="game-container">
         <div id="start-screen" class="game-overlay">
-            <p class="game-over-text" style="font-size: 3em; color: #8a2be2;">PRESS START!</p>
             <button id="start-button" class="pop-button">START GAME</button>
         </div>
         
@@ -346,14 +345,13 @@
         board = [];
         DROP_INTERVAL = 1000;
         
-        // ボードを初期化して空にする
+        // 修正: ボードを初期化し、空配列を格納
         for (let y = 0; y < ROWS; y++) {
             board[y] = new Array(COLS).fill(0);
         }
-        refreshBoard(); // 空のボードを描画
         
         spawnBlock();
-        refreshBoard();
+        refreshBoard(); // 最初のブロックを描画
         
         // ゲームループを開始
         if (gameLoopInterval) clearInterval(gameLoopInterval);
@@ -422,7 +420,8 @@
 
     /** Redraws the entire board state and the current falling block */
     function refreshBoard() {
-        if (isGameOver || isGamePaused) return;
+        // isGamePaused のチェックを追加し、ゲーム開始前は描画しない
+        if (isGameOver || isGamePaused) return; 
         
         // 1. Clear and Draw Locked Blocks
         for (let y = 0; y < ROWS; y++) {
@@ -593,12 +592,14 @@
     // Keyboard controls
     document.addEventListener('keydown', (e) => {
         if (isGameOver || isGamePaused) {
-            // ゲームオーバー時またはスタート画面でEnterを押すと再開/スタート
+            // ゲームオーバー時またはスタート画面でEnterまたはSpaceを押すと開始/再開
             if (e.key === 'Enter' || e.key === ' ') {
                 if (isGamePaused) {
                     startGame(); 
                 }
             }
+            // ゲームが停止している場合は、キー入力を無視
+            e.preventDefault();
             return;
         }
 
